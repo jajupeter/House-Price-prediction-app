@@ -11,6 +11,7 @@ import joblib
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.models import load_model
+from sklearn.preprocessing import MinMaxScaler
 
 # Load dataset
 try:
@@ -42,32 +43,34 @@ st.sidebar.header('User Input Parameters')
 if st.checkbox('Show Summary of Dataset'):
     st.write(house_data.describe())
 
-# Load models and scalers with error handling
+# Load models and create scalers from training data
 @st.cache_resource
-def load_models():
+def load_models_and_scalers():
     try:
-        # Try loading the model saved as .h5 first (from your notebook)
+        # Load the model
         try:
             model_ann = tf.keras.models.load_model("ann_model.h5")
         except:
-            # If that fails, try .hdf5
             model_ann = tf.keras.models.load_model("ann_model.hdf5")
         
-        # Try loading the scalers from your notebook first
-        try:
-            scalerX = joblib.load('scaler_x.gz')
-            scalerY = joblib.load('scaler_y.gz')
-        except:
-            # If that fails, try the original names
-            scalerX = joblib.load('scaler_x1.gz')
-            scalerY = joblib.load('scaler_y1.gz')
+        # Recreate scalers from the original data (same as in your notebook)
+        # This matches exactly what you did in your training
+        Xa = house_data.drop(['price', 'date', 'id', 'view'], axis=1)
+        Y = house_data['price'].values.reshape(-1,1)
+        
+        # Create and fit scalers
+        scalerX = MinMaxScaler()
+        scalerY = MinMaxScaler()
+        
+        scalerX.fit(Xa)
+        scalerY.fit(Y)
             
         return model_ann, scalerX, scalerY, True
     except Exception as e:
         st.error(f"Error loading models: {str(e)}")
         return None, None, None, False
 
-model_ann, scalerX, scalerY, models_loaded = load_models()
+model_ann, scalerX, scalerY, models_loaded = load_models_and_scalers()
 
 def user_input_parameters():         
     bedrooms = st.sidebar.slider("1. No of bedrooms?", 0, 12, 4)      
@@ -133,7 +136,7 @@ if st.checkbox('Show Debug Info') and models_loaded:
     try:
         st.write("Model input shape:", model_ann.input_shape)
         st.write("Input data shape:", df.shape)
-        st.write("Expected features by scaler:", getattr(scalerX, 'n_features_in_', 'Unknown'))
+        st.write("Scaler feature count:", scalerX.n_features_in_)
     except Exception as e:
         st.write(f"Debug info error: {e}")
 
@@ -143,19 +146,19 @@ def predict_ann(input_df):
         # Convert dataframe to numpy array
         df_array = np.array(input_df)
         
-        # Scale the input using the X scaler
+        # Scale the input using the recreated X scaler
         X_scaled = scalerX.transform(df_array)
         
-        # Make prediction (keep as 2D since your model was trained on 2D data)
+        # Make prediction
         prediction = model_ann.predict(X_scaled, verbose=0)
         
-        # Handle different prediction shapes and inverse transform using Y scaler
+        # Handle prediction shape
         if prediction.ndim > 1 and prediction.shape[1] == 1:
             prediction_reshaped = prediction
         else:
             prediction_reshaped = prediction.reshape(-1, 1)
         
-        # Inverse transform the prediction using the Y scaler
+        # Inverse transform the prediction using the recreated Y scaler
         prediction_original = scalerY.inverse_transform(prediction_reshaped)
         
         return float(prediction_original[0][0])
@@ -167,12 +170,14 @@ def predict_ann(input_df):
         st.write("Debug information:")
         try:
             st.write(f"Input DataFrame shape: {input_df.shape}")
+            st.write(f"Input DataFrame columns: {list(input_df.columns)}")
             if 'df_array' in locals():
                 st.write(f"Input array shape: {df_array.shape}")
             if 'X_scaled' in locals():
                 st.write(f"Scaled input shape: {X_scaled.shape}")
             if 'prediction' in locals():
                 st.write(f"Prediction shape: {prediction.shape}")
+                st.write(f"Raw prediction value: {prediction}")
         except:
             st.write("Could not display debug information")
             
@@ -194,7 +199,7 @@ else:
     st.error("""
     Could not load the required model files. Please ensure the following files exist in your directory:
     - ann_model.h5 (or ann_model.hdf5)
-    - scaler_x.gz and scaler_y.gz (or scaler_x1.gz and scaler_y1.gz)
+    - kc_house_data.csv (needed to recreate scalers)
     """)
 
 # Source code link
