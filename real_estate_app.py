@@ -124,17 +124,21 @@ if st.checkbox('Show Debug Info') and models_loaded:
     except Exception as e:
         st.write(f"Debug info error: {e}")
 
-# Prediction function
+# Prediction function - FIXED for 3D input
 def predict_ann(input_df):
     try:
-        # Convert dataframe to numpy array and ensure 2D shape
-        df_array = np.array(input_df).reshape(1, -1)
+        # Convert dataframe to numpy array
+        df_array = np.array(input_df)
         
-        # Scale the input
+        # Scale the input (2D: batch_size, features)
         X_scaled = scalerX.transform(df_array)
         
+        # CRITICAL FIX: Reshape to 3D for the model
+        # From (1, 17) to (1, 1, 17) - adding timestep dimension
+        X_scaled_3d = X_scaled.reshape(X_scaled.shape[0], 1, X_scaled.shape[1])
+        
         # Make prediction
-        prediction = model_ann.predict(X_scaled, verbose=0)
+        prediction = model_ann.predict(X_scaled_3d, verbose=0)
         
         # Handle different prediction shapes
         if prediction.ndim > 1 and prediction.shape[1] == 1:
@@ -154,8 +158,12 @@ def predict_ann(input_df):
         st.write("Debug information:")
         try:
             st.write(f"Input DataFrame shape: {input_df.shape}")
-            st.write(f"Input array shape: {df_array.shape}")
-            st.write(f"Scaled input shape: {X_scaled.shape}")
+            if 'df_array' in locals():
+                st.write(f"Input array shape: {df_array.shape}")
+            if 'X_scaled' in locals():
+                st.write(f"Scaled input shape: {X_scaled.shape}")
+            if 'X_scaled_3d' in locals():
+                st.write(f"3D input shape: {X_scaled_3d.shape}")
             if 'prediction' in locals():
                 st.write(f"Prediction shape: {prediction.shape}")
         except:
