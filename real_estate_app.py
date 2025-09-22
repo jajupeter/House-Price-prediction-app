@@ -46,9 +46,22 @@ if st.checkbox('Show Summary of Dataset'):
 @st.cache_resource
 def load_models():
     try:
-        model_ann = tf.keras.models.load_model("ann_model.hdf5")
-        scalerX = joblib.load('scaler_x1.gz')
-        scalerY = joblib.load('scaler_y1.gz')
+        # Try loading the model saved as .h5 first (from your notebook)
+        try:
+            model_ann = tf.keras.models.load_model("ann_model.h5")
+        except:
+            # If that fails, try .hdf5
+            model_ann = tf.keras.models.load_model("ann_model.hdf5")
+        
+        # Try loading the scalers from your notebook first
+        try:
+            scalerX = joblib.load('scaler_x.gz')
+            scalerY = joblib.load('scaler_y.gz')
+        except:
+            # If that fails, try the original names
+            scalerX = joblib.load('scaler_x1.gz')
+            scalerY = joblib.load('scaler_y1.gz')
+            
         return model_ann, scalerX, scalerY, True
     except Exception as e:
         st.error(f"Error loading models: {str(e)}")
@@ -124,29 +137,25 @@ if st.checkbox('Show Debug Info') and models_loaded:
     except Exception as e:
         st.write(f"Debug info error: {e}")
 
-# Prediction function - FIXED for 3D input
+# Prediction function
 def predict_ann(input_df):
     try:
         # Convert dataframe to numpy array
         df_array = np.array(input_df)
         
-        # Scale the input (2D: batch_size, features)
+        # Scale the input using the X scaler
         X_scaled = scalerX.transform(df_array)
         
-        # CRITICAL FIX: Reshape to 3D for the model
-        # From (1, 17) to (1, 1, 17) - adding timestep dimension
-        X_scaled_3d = X_scaled.reshape(X_scaled.shape[0], 1, X_scaled.shape[1])
+        # Make prediction (keep as 2D since your model was trained on 2D data)
+        prediction = model_ann.predict(X_scaled, verbose=0)
         
-        # Make prediction
-        prediction = model_ann.predict(X_scaled_3d, verbose=0)
-        
-        # Handle different prediction shapes
+        # Handle different prediction shapes and inverse transform using Y scaler
         if prediction.ndim > 1 and prediction.shape[1] == 1:
             prediction_reshaped = prediction
         else:
             prediction_reshaped = prediction.reshape(-1, 1)
         
-        # Inverse transform the prediction
+        # Inverse transform the prediction using the Y scaler
         prediction_original = scalerY.inverse_transform(prediction_reshaped)
         
         return float(prediction_original[0][0])
@@ -162,8 +171,6 @@ def predict_ann(input_df):
                 st.write(f"Input array shape: {df_array.shape}")
             if 'X_scaled' in locals():
                 st.write(f"Scaled input shape: {X_scaled.shape}")
-            if 'X_scaled_3d' in locals():
-                st.write(f"3D input shape: {X_scaled_3d.shape}")
             if 'prediction' in locals():
                 st.write(f"Prediction shape: {prediction.shape}")
         except:
@@ -186,9 +193,8 @@ if models_loaded:
 else:
     st.error("""
     Could not load the required model files. Please ensure the following files exist in your directory:
-    - ann_model.hdf5
-    - scaler_x1.gz  
-    - scaler_y1.gz
+    - ann_model.h5 (or ann_model.hdf5)
+    - scaler_x.gz and scaler_y.gz (or scaler_x1.gz and scaler_y1.gz)
     """)
 
 # Source code link
