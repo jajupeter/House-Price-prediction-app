@@ -148,6 +148,10 @@ def predict_ann(input_df):
         
         # Scale the input using the recreated X scaler
         X_scaled = scalerX.transform(df_array)
+        # Scale the input
+        X_scaled = scalerX.transform(df_array)
+        # Reshape to match model's expected 3D input
+        X_scaled = X_scaled.reshape((X_scaled.shape[0], 1, X_scaled.shape[1]))  # (1, 1, 17)
         
         # Make prediction
         prediction = model_ann.predict(X_scaled, verbose=0)
