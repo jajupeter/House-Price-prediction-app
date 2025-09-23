@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct 23 09:51:13 2020
+Created on Fri Oct 23 09:51:13 2021
 
-@author: TosinOjajuni
+@author: Jaju Peter
 """
 import pandas as pd
 import numpy as np
@@ -29,11 +29,17 @@ st.write("""
 html_temp = """
     <div style="background-color: #f0f0f5; padding: 5px">
     <h3 style="color:#666666;text-align:left; line-height: 1.5">
-    <p> <b> Choose input parameters by clicking the arrow on the Top left Corner. </b><br/ >
-    This Web App will predict house 
-    price once the following (16) parameters are inputed.<br> 
-    This is based on Deep learning 
-    algorithms with data from 2014/15 House Sales in King County, Washington DC.</p></h3>
+    <p> <b> bout this App
+Buying or selling a home is one of the biggest financial decisions people make — and pricing it right matters.
+
+This app uses real-world housing data from King County, Washington (2014–2015) and a deep learning regression model to estimate home values.
+
+🔑 Key Features:
+	•	Interactive sidebar to set 18 property attributes (bedrooms, bathrooms, square footage, year built, location, and more).
+	•	Instant predictions powered by AI.
+	•	Transparent insights — view dataset summary and debug information if you want to peek under the hood.
+
+🎯 Whether you’re a homeowner, real estate investor, or data enthusiast, this app gives you a taste of how AI meets real estate valuation.</p></h3>
     </div>
     """
 st.markdown(html_temp, unsafe_allow_html=True)
@@ -168,52 +174,6 @@ def predict_ann(input_df):
         return 0.0
 
 
-        
-#def predict_ann(input_df):
-    try:
-        # Convert dataframe to numpy array
-        df_array = np.array(input_df)
-        
-        # Scale the input using the recreated X scaler
-        X_scaled = scalerX.transform(df_array)
-        # Scale the input
-        X_scaled = scalerX.transform(df_array)
-        # Reshape to match model's expected 3D input
-        X_scaled = X_scaled.reshape((X_scaled.shape[0], 1, X_scaled.shape[1]))  # (1, 1, 17)
-        
-        # Make prediction
-        prediction = model_ann.predict(X_scaled, verbose=0)
-        
-        # Handle prediction shape
-        if prediction.ndim > 1 and prediction.shape[1] == 1:
-            prediction_reshaped = prediction
-        else:
-            prediction_reshaped = prediction.reshape(-1, 1)
-        
-        # Inverse transform the prediction using the recreated Y scaler
-        prediction_original = scalerY.inverse_transform(prediction_reshaped)
-        
-        return float(prediction_original[0][0])
-        
-    except Exception as e:
-        st.error(f"Prediction error: {str(e)}")
-        
-        # Additional debug information
-        st.write("Debug information:")
-        try:
-            st.write(f"Input DataFrame shape: {input_df.shape}")
-            st.write(f"Input DataFrame columns: {list(input_df.columns)}")
-            if 'df_array' in locals():
-                st.write(f"Input array shape: {df_array.shape}")
-            if 'X_scaled' in locals():
-                st.write(f"Scaled input shape: {X_scaled.shape}")
-            if 'prediction' in locals():
-                st.write(f"Prediction shape: {prediction.shape}")
-                st.write(f"Raw prediction value: {prediction}")
-        except:
-            st.write("Could not display debug information")
-            
-        return 0.0
 
 # Prediction section
 st.text("")
@@ -235,5 +195,5 @@ else:
     """)
 
 # Source code link
-url = '[SOURCE CODE](https://github.com/Tosindare/Web-App-House-Price)'
+url = '[SOURCE CODE](https://github.com/jajupeter/House-Price-prediction-app)'
 st.markdown(url, unsafe_allow_html=True)
