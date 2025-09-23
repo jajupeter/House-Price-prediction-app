@@ -145,6 +145,34 @@ def predict_ann(input_df):
     try:
         # Convert dataframe to numpy array
         df_array = np.array(input_df)
+
+        # ✅ Scale first (2D input)
+        X_scaled = scalerX.transform(df_array)   # shape (1, 17)
+
+        # ✅ Then reshape for the model (if model expects 3D)
+        X_scaled = X_scaled.reshape((X_scaled.shape[0], 1, X_scaled.shape[1]))  # (1, 1, 17)
+
+        # Make prediction
+        prediction = model_ann.predict(X_scaled, verbose=0)
+
+        # Ensure shape matches scalerY
+        if prediction.ndim > 2:
+            prediction = prediction.reshape(-1, 1)
+
+        # ✅ Inverse scale back to original price range
+        prediction_original = scalerY.inverse_transform(prediction)
+
+        return float(prediction_original[0][0])
+    except Exception as e:
+        st.error(f"Prediction error: {str(e)}")
+        return 0.0
+
+
+        
+#def predict_ann(input_df):
+    try:
+        # Convert dataframe to numpy array
+        df_array = np.array(input_df)
         
         # Scale the input using the recreated X scaler
         X_scaled = scalerX.transform(df_array)
